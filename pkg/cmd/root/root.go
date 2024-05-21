@@ -38,6 +38,7 @@ import (
 	variableCmd "github.com/cli/cli/v2/pkg/cmd/variable"
 	versionCmd "github.com/cli/cli/v2/pkg/cmd/version"
 	workflowCmd "github.com/cli/cli/v2/pkg/cmd/workflow"
+	ownerCmd "github.com/cli/cli/v2/pkg/cmd/owner"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/google/shlex"
 	"github.com/spf13/cobra"
@@ -156,6 +157,7 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) (*cobra.Command, 
 	cmd.AddCommand(labelCmd.NewCmdLabel(&repoResolvingCmdFactory))
 	cmd.AddCommand(cacheCmd.NewCmdCache(&repoResolvingCmdFactory))
 	cmd.AddCommand(apiCmd.NewCmdApi(&repoResolvingCmdFactory, nil))
+	cmd.AddCommand(ownerCmd.NewCmdOwner(&repoResolvingCmdFactory))
 
 	// Help topics
 	var referenceCmd *cobra.Command
