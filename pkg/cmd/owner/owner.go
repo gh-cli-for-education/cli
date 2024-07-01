@@ -1,6 +1,7 @@
 package owner
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/MakeNowJust/heredoc"
@@ -39,6 +40,10 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 				return cmdutil.FlagErrorf("accepts at most 1 arg(s), received %d", len(args))
 			}
 
+			if len(args) == 1 {
+				opts.Owner = args[0]
+			}
+
 			return nil
 		},
 		Annotations: map[string]string{
@@ -50,13 +55,26 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.Owner == "" {
 				// List default owner
-				// TODO: Implement list default owner
+				owner, err := getDefaultOwner(*opts)
+				if err != nil {
+					return err
+				}
+
+				if owner == "" {
+					fmt.Fprintf(opts.IO.Out, "No default owner set\n")
+				} else {
+					fmt.Fprintf(opts.IO.Out, "Default owner: %s\n", owner)
+				}
+
 				return nil
 			}
 
 			if opts.Owner != "" {
 				// Set default owner
-				// TODO: Implement set default owner
+				err := setDefaultOwner(*opts, opts.Owner)
+				if err != nil {
+					return err
+				}
 				return nil
 			}
 
@@ -65,4 +83,35 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	}
 
 	return cmd
+}
+
+func getDefaultOwner(opts OwnerOptions) (string, error) {
+	// Get default owner
+	cfg, err := opts.Config()
+	if err != nil {
+		return "", err
+	}
+
+	optValue := cfg.GetOrDefault("", "gh-owner")
+	if optValue.IsSome() {
+		return optValue.Unwrap().Value, nil
+	}
+
+	return "", nil
+}
+
+func setDefaultOwner(opts OwnerOptions, owner string) error {
+	// Set default owner
+	cfg, err := opts.Config()
+	if err != nil {
+		return err
+	}
+
+	cfg.Set("", "gh-owner", owner)
+	err = cfg.Write()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
