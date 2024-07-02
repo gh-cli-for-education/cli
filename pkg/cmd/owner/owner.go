@@ -30,7 +30,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "owner [OWNER | <flag>]",
+		Use:   "owner [OWNER] |",
 		Short: "Manage default owner for GitHub CLI commands",
 		Long: `The owner command allows you to manage the default owner
 			for GitHub CLI commands.`,
@@ -45,7 +45,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			}
 
 			if len(args) == 1 && opts.List {
-				return cmdutil.FlagErrorf("accepts at most 1 arg(s) when listing")
+				return cmdutil.FlagErrorf("cannot use OWNER argument with --list flag")
 			}
 
 			if len(args) == 1 && !opts.List {
