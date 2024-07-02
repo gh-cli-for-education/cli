@@ -61,13 +61,13 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			`),
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ownersList, err := getOwners(opts)
+			if err != nil {
+				return err
+			}
+
 			if opts.List {
 				// List organizations
-				ownersList, err := getOwners(opts)
-				if err != nil {
-					return err
-				}
-
 				err = listRun(opts, ownersList)
 				if err != nil {
 					return err
@@ -91,7 +91,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 
 				if opts.Owner != "" {
 					// Set default owner
-					err := setDefaultOwner(*opts, opts.Owner)
+					err := setDefaultOwner(*opts, ownersList)
 					if err != nil {
 						return err
 					}
@@ -123,17 +123,31 @@ func getDefaultOwner(opts OwnerOptions) (string, error) {
 	return "", nil
 }
 
-func setDefaultOwner(opts OwnerOptions, owner string) error {
+func setDefaultOwner(opts OwnerOptions, ownerList *OrganizationList) error {
 	// Set default owner
 	cfg, err := opts.Config()
 	if err != nil {
 		return err
 	}
 
-	cfg.Set("", "gh-owner", owner)
-	err = cfg.Write()
-	if err != nil {
-		return err
+	// Check if owner is in the list of organizations
+	found := false
+	for _, org := range ownerList.Organizations {
+		if org.Login == opts.Owner {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		fmt.Fprintf(opts.IO.Out, "Owner %s not found\n", opts.Owner)
+	} else {
+		cfg.Set("", "gh-owner", opts.Owner)
+		err = cfg.Write()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(opts.IO.Out, "Default owner set to %s\n", opts.Owner)
 	}
 
 	return nil
