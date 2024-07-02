@@ -12,14 +12,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type iprompter interface {
+	Select(string, string, []string) (int, error)
+}
+
 type OwnerOptions struct {
 	Config     func() (gh.Config, error)
 	IO         *iostreams.IOStreams
 	HttpClient func() (*http.Client, error)
+	Prompter   iprompter
 
-	Owner      string
-	List       bool
-	ListFilter string
+	Owner       string
+	List        bool
+	ListFilter  string
+	SelectOwner bool
 }
 
 func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
@@ -27,6 +33,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 		IO:         f.IOStreams,
 		Config:     f.Config,
 		HttpClient: f.HttpClient,
+		Prompter:   f.Prompter,
 	}
 
 	cmd := &cobra.Command{
@@ -37,18 +44,23 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 		Example: heredoc.Doc(`
 			$ gh owner
 			$ gh owner GITHUB_USERNAME
-			$ gh owner -l
+			$ gh owner --list
+			$ gh owner --select
 		`),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 1 {
 				return cmdutil.FlagErrorf("accepts at most 1 arg(s), received %d", len(args))
 			}
 
-			if len(args) == 1 && opts.List {
+			if len(args) == 1 && (opts.List || opts.SelectOwner) {
 				return cmdutil.FlagErrorf("cannot use OWNER argument with --list flag")
 			}
 
-			if len(args) == 1 && !opts.List {
+			if opts.SelectOwner && opts.List {
+				return cmdutil.FlagErrorf("cannot use --select and --list flags together")
+			}
+
+			if len(args) == 1 && !opts.List && !opts.SelectOwner {
 				opts.Owner = args[0]
 			}
 
@@ -72,31 +84,41 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 				if err != nil {
 					return err
 				}
-			} else {
-				if opts.Owner == "" {
-					// List default owner
-					owner, err := getDefaultOwner(*opts)
-					if err != nil {
-						return err
-					}
 
-					if owner == "" {
-						fmt.Fprintf(opts.IO.Out, "No default owner set\n")
-					} else {
-						fmt.Fprintf(opts.IO.Out, "Default owner: %s\n", owner)
-					}
+				return nil
+			}
 
-					return nil
+			if opts.SelectOwner {
+				// Select default owner
+				opts.Owner, err = selectOwnerPrompt(opts.Prompter, ownersList.User, ownersList.Organizations)
+				if err != nil {
+					return err
+				}
+			}
+
+			if opts.Owner == "" {
+				// List default owner
+				owner, err := getDefaultOwner(*opts)
+				if err != nil {
+					return err
 				}
 
-				if opts.Owner != "" {
-					// Set default owner
-					err := setDefaultOwner(*opts, ownersList)
-					if err != nil {
-						return err
-					}
-					return nil
+				if owner == "" {
+					fmt.Fprintf(opts.IO.Out, "No default owner set\n")
+				} else {
+					fmt.Fprintf(opts.IO.Out, "Default owner: %s\n", owner)
 				}
+
+				return nil
+			}
+
+			if opts.Owner != "" {
+				// Set default owner
+				err := setDefaultOwner(*opts, ownersList)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 
 			return nil
@@ -104,6 +126,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVarP(&opts.List, "list", "l", false, "List organizations")
+	cmd.Flags().BoolVarP(&opts.SelectOwner, "select", "s", false, "Interactively select a default owner")
 
 	return cmd
 }
@@ -198,4 +221,20 @@ func listHeader(user string, resultCount, totalCount int) string {
 	}
 
 	return fmt.Sprintf("Showing %d of %s", resultCount, text.Pluralize(totalCount, "organization"))
+}
+
+func selectOwnerPrompt(prompter iprompter, user string, orgs []Organization) (string, error) {
+	selectedOwner, err := prompter.Select("Select a default owner", user, organizationsToList(orgs))
+	if err != nil {
+		return "", err
+	}
+	return orgs[selectedOwner].Login, nil
+}
+
+func organizationsToList(orgs []Organization) []string {
+	var list []string
+	for _, org := range orgs {
+		list = append(list, org.Login)
+	}
+	return list
 }
