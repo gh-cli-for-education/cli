@@ -26,6 +26,7 @@ type OwnerOptions struct {
 	List        bool
 	ListFilter  string
 	SelectOwner bool
+	Unset       bool
 }
 
 func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
@@ -46,18 +47,20 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			$ gh owner GITHUB_USERNAME
 			$ gh owner --list
 			$ gh owner --select
+			$ gh owner --unset
 		`),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 1 {
 				return cmdutil.FlagErrorf("accepts at most 1 arg(s), received %d", len(args))
 			}
 
-			if len(args) == 1 && (opts.List || opts.SelectOwner) {
-				return cmdutil.FlagErrorf("cannot use OWNER argument with --list flag")
+			if len(args) == 1 && (opts.List || opts.SelectOwner || opts.Unset) {
+				return cmdutil.FlagErrorf("cannot use OWNER argument with other flags")
 			}
 
-			if opts.SelectOwner && opts.List {
-				return cmdutil.FlagErrorf("cannot use --select and --list flags together")
+			// You can only use one flag at a time
+			if (opts.SelectOwner && opts.List) || (opts.SelectOwner && opts.Unset) || (opts.List && opts.Unset) {
+				return cmdutil.FlagErrorf("cannot use more than one flag at a time")
 			}
 
 			if len(args) == 1 && !opts.List && !opts.SelectOwner {
@@ -81,6 +84,16 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			if opts.List {
 				// List organizations
 				err = listRun(opts, ownersList)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			if opts.Unset {
+				// Unset default owner
+				err := unsetDefaultOwner(*opts)
 				if err != nil {
 					return err
 				}
@@ -127,6 +140,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 
 	cmd.Flags().BoolVarP(&opts.List, "list", "l", false, "List organizations")
 	cmd.Flags().BoolVarP(&opts.SelectOwner, "select", "s", false, "Interactively select a default owner")
+	cmd.Flags().BoolVarP(&opts.Unset, "unset", "u", false, "Unset the default owner")
 
 	return cmd
 }
@@ -172,6 +186,23 @@ func setDefaultOwner(opts OwnerOptions, ownerList *OrganizationList) error {
 		}
 		fmt.Fprintf(opts.IO.Out, "Default owner set to %s\n", opts.Owner)
 	}
+
+	return nil
+}
+
+func unsetDefaultOwner(opts OwnerOptions) error {
+	cfg, err := opts.Config()
+	if err != nil {
+		return err
+	}
+
+	cfg.Set("", "gh-owner", "")
+	err = cfg.Write()
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(opts.IO.Out, "Default owner unset\n")
 
 	return nil
 }
