@@ -56,6 +56,7 @@ func listOrgs(httpClient *http.Client, hostname string, limit int) (*Organizatio
 
 	listResult := OrganizationList{}
 	listResult.User = user
+	listResult.Organizations = append(listResult.Organizations, Organization{Login: user})
 	pageLimit := min(limit, 100)
 	variables := map[string]interface{}{
 		"user": user,
@@ -70,7 +71,7 @@ loop:
 			return nil, err
 		}
 
-		listResult.TotalCount = data.User.Organizations.TotalCount
+		listResult.TotalCount = data.User.Organizations.TotalCount + 1
 
 		for _, org := range data.User.Organizations.Nodes {
 			listResult.Organizations = append(listResult.Organizations, org)
