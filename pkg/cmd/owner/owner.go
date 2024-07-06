@@ -44,7 +44,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			for GitHub CLI commands.`,
 		Example: heredoc.Doc(`
 			$ gh owner
-			$ gh owner GITHUB_USERNAME
+			$ gh owner [ORGANIZATION | USER]
 			$ gh owner --list
 			$ gh owner --select
 			$ gh owner --unset
@@ -71,8 +71,8 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 		},
 		Annotations: map[string]string{
 			"help:arguments": heredoc.Doc(`
-				A owner can be supplied as an argument in any of the following formats:
-				- "OWNER"
+				You can specify an owner as an argument or use the --list, --select, or --unset flags.
+				Any of these options can be used, but only one at a time.
 			`),
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
