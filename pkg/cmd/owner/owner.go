@@ -220,7 +220,7 @@ func getOwners(opts *OwnerOptions) (*OrganizationList, error) {
 
 	host, _ := cfg.Authentication().DefaultHost()
 
-	ownersList, err := listOrgs(httpClient, host, 100)
+	ownersList, err := listAllOrgs(httpClient, host)
 	if err != nil {
 		return nil, err
 	}
