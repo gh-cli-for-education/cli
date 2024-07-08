@@ -2,6 +2,7 @@ package owner
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/cli/cli/v2/api"
 )
@@ -16,7 +17,7 @@ type Organization struct {
 	Login string
 }
 
-func listOrgs(httpClient *http.Client, hostname string, limit int) (*OrganizationList, error) {
+func listAllOrgs(httpClient *http.Client, hostname string) (*OrganizationList, error) {
 	type response struct {
 		User struct {
 			Login         string
@@ -47,7 +48,8 @@ func listOrgs(httpClient *http.Client, hostname string, limit int) (*Organizatio
 		}
 	}`
 
-	client := api.NewClientFromHTTP(httpClient)
+	cachedClient := api.NewCachedHTTPClient(httpClient, time.Hour*24*7)
+	client := api.NewClientFromHTTP(cachedClient)
 
 	user, err := api.CurrentLoginName(client, hostname)
 	if err != nil {
@@ -57,12 +59,11 @@ func listOrgs(httpClient *http.Client, hostname string, limit int) (*Organizatio
 	listResult := OrganizationList{}
 	listResult.User = user
 	listResult.Organizations = append(listResult.Organizations, Organization{Login: user})
-	pageLimit := min(limit, 100)
+	pageLimit := 5
 	variables := map[string]interface{}{
 		"user": user,
 	}
 
-loop:
 	for {
 		variables["limit"] = pageLimit
 		var data response
@@ -71,29 +72,18 @@ loop:
 			return nil, err
 		}
 
-		listResult.TotalCount = data.User.Organizations.TotalCount + 1
-
-		for _, org := range data.User.Organizations.Nodes {
-			listResult.Organizations = append(listResult.Organizations, org)
-			if len(listResult.Organizations) == limit {
-				break loop
-			}
+		if listResult.TotalCount == 0 {
+			listResult.TotalCount = data.User.Organizations.TotalCount + 1
 		}
+
+		listResult.Organizations = append(listResult.Organizations, data.User.Organizations.Nodes...)
 
 		if data.User.Organizations.PageInfo.HasNextPage {
 			variables["endCursor"] = data.User.Organizations.PageInfo.EndCursor
-			pageLimit = min(pageLimit, limit-len(listResult.Organizations))
 		} else {
 			break
 		}
 	}
 
 	return &listResult, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
