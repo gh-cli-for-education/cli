@@ -48,7 +48,7 @@ func listAllOrgs(httpClient *http.Client, hostname string) (*OrganizationList, e
 		}
 	}`
 
-	cachedClient := api.NewCachedHTTPClient(httpClient, time.Hour*24)
+	cachedClient := api.NewCachedHTTPClient(httpClient, time.Hour*24*7)
 	client := api.NewClientFromHTTP(cachedClient)
 
 	user, err := api.CurrentLoginName(client, hostname)
