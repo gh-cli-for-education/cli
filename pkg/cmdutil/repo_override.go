@@ -53,11 +53,12 @@ func EnableRepoOverride(cmd *cobra.Command, f *Factory) {
 			return err
 		}
 		repoOverride, _ := cmd.Flags().GetString("repo")
-		cfg, err := f.Config()
+		defaultOwner, err := f.DefaultOwner()
 		if err != nil {
 			return err
 		}
-		repoOverride, err = ghowner.GetRepoWithDefaultOwner(cfg, repoOverride)
+
+		repoOverride, err = ghowner.RepoToOwnerRepo(defaultOwner, repoOverride)
 		if err != nil {
 			return err
 		}

@@ -81,11 +81,12 @@ func NewCmdSetDefault(f *cmdutil.Factory, runF func(*SetDefaultOptions) error) *
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				var err error
-				cfg, err := f.Config()
+				defaultOwner, err := f.DefaultOwner()
 				if err != nil {
 					return err
 				}
-				args[0], err = ghowner.GetRepoWithDefaultOwner(cfg, args[0])
+
+				args[0], err = ghowner.RepoToOwnerRepo(defaultOwner, args[0])
 				if err != nil {
 					return err
 				}
