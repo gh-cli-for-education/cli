@@ -11,6 +11,7 @@ import (
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/git"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -19,10 +20,11 @@ import (
 )
 
 type CloneOptions struct {
-	HttpClient func() (*http.Client, error)
-	GitClient  *git.Client
-	Config     func() (gh.Config, error)
-	IO         *iostreams.IOStreams
+	HttpClient   func() (*http.Client, error)
+	GitClient    *git.Client
+	Config       func() (gh.Config, error)
+	IO           *iostreams.IOStreams
+	DefaultOwner func() (string, error)
 
 	GitArgs      []string
 	Repository   string
@@ -31,10 +33,11 @@ type CloneOptions struct {
 
 func NewCmdClone(f *cmdutil.Factory, runF func(*CloneOptions) error) *cobra.Command {
 	opts := &CloneOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		GitClient:  f.GitClient,
-		Config:     f.Config,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		GitClient:    f.GitClient,
+		Config:       f.Config,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -140,12 +143,24 @@ func cloneRun(opts *CloneOptions) error {
 		if repositoryIsFullName {
 			fullName = opts.Repository
 		} else {
-			host, _ := cfg.Authentication().DefaultHost()
-			currentUser, err := api.CurrentLoginName(apiClient, host)
+			defaultOwner, err := opts.DefaultOwner()
 			if err != nil {
 				return err
 			}
-			fullName = currentUser + "/" + opts.Repository
+			if defaultOwner != "" {
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, opts.Repository)
+				if err != nil {
+					return err
+				}
+				fullName = repository
+			} else {
+				host, _ := cfg.Authentication().DefaultHost()
+				currentUser, err := api.CurrentLoginName(apiClient, host)
+				if err != nil {
+					return err
+				}
+				fullName = currentUser + "/" + opts.Repository
+			}
 		}
 
 		repo, err = ghrepo.FromFullName(fullName)
