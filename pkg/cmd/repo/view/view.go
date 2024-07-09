@@ -12,6 +12,7 @@ import (
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/internal/browser"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/internal/text"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -21,12 +22,13 @@ import (
 )
 
 type ViewOptions struct {
-	HttpClient func() (*http.Client, error)
-	IO         *iostreams.IOStreams
-	BaseRepo   func() (ghrepo.Interface, error)
-	Browser    browser.Browser
-	Exporter   cmdutil.Exporter
-	Config     func() (gh.Config, error)
+	HttpClient   func() (*http.Client, error)
+	IO           *iostreams.IOStreams
+	BaseRepo     func() (ghrepo.Interface, error)
+	Browser      browser.Browser
+	Exporter     cmdutil.Exporter
+	Config       func() (gh.Config, error)
+	DefaultOwner func() (string, error)
 
 	RepoArg string
 	Web     bool
@@ -35,11 +37,12 @@ type ViewOptions struct {
 
 func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Command {
 	opts := ViewOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		BaseRepo:   f.BaseRepo,
-		Browser:    f.Browser,
-		Config:     f.Config,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		BaseRepo:     f.BaseRepo,
+		Browser:      f.Browser,
+		Config:       f.Config,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -55,7 +58,15 @@ With '--branch', view a specific branch of the repository.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				opts.RepoArg = args[0]
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+				opts.RepoArg = repository
 			}
 			if runF != nil {
 				return runF(&opts)
