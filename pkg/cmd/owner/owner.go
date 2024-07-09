@@ -17,10 +17,11 @@ type iprompter interface {
 }
 
 type OwnerOptions struct {
-	Config     func() (gh.Config, error)
-	IO         *iostreams.IOStreams
-	HttpClient func() (*http.Client, error)
-	Prompter   iprompter
+	Config       func() (gh.Config, error)
+	IO           *iostreams.IOStreams
+	HttpClient   func() (*http.Client, error)
+	Prompter     iprompter
+	DefaultOwner func() (string, error)
 
 	Owner       string
 	List        bool
@@ -31,10 +32,11 @@ type OwnerOptions struct {
 
 func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	opts := &OwnerOptions{
-		IO:         f.IOStreams,
-		Config:     f.Config,
-		HttpClient: f.HttpClient,
-		Prompter:   f.Prompter,
+		IO:           f.IOStreams,
+		Config:       f.Config,
+		HttpClient:   f.HttpClient,
+		Prompter:     f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -111,7 +113,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 
 			if opts.Owner == "" {
 				// List default owner
-				owner, err := getDefaultOwner(*opts)
+				owner, err := opts.DefaultOwner()
 				if err != nil {
 					return err
 				}
@@ -143,21 +145,6 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	cmd.Flags().BoolVarP(&opts.Unset, "unset", "u", false, "Unset the default owner")
 
 	return cmd
-}
-
-func getDefaultOwner(opts OwnerOptions) (string, error) {
-	// Get default owner
-	cfg, err := opts.Config()
-	if err != nil {
-		return "", err
-	}
-
-	optValue := cfg.GetOrDefault("", "gh-owner")
-	if optValue.IsSome() {
-		return optValue.Unwrap().Value, nil
-	}
-
-	return "", nil
 }
 
 func setDefaultOwner(opts OwnerOptions, ownerList *OrganizationList) error {
