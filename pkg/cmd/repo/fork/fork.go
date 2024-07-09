@@ -102,15 +102,7 @@ func NewCmdFork(f *cmdutil.Factory, runF func(*ForkOptions) error) *cobra.Comman
 		RunE: func(cmd *cobra.Command, args []string) error {
 			promptOk := opts.IO.CanPrompt()
 			if len(args) > 0 {
-				defaultOwner, err := opts.DefaultOwner()
-				if err != nil {
-					return err
-				}
-				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
-				if err != nil {
-					return err
-				}
-				opts.Repository = repository
+				opts.Repository = args[0]
 				opts.GitArgs = args[1:]
 			}
 
@@ -188,6 +180,12 @@ func forkRun(opts *ForkOptions) error {
 				return fmt.Errorf("did not understand argument: %w", err)
 			}
 		} else {
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				repoArg, err = ghowner.RepoToOwnerRepo(defaultOwner, repoArg)
+				if err != nil {
+					return err
+				}
+			}
 			repoToFork, err = ghrepo.FromFullName(repoArg)
 			if err != nil {
 				return fmt.Errorf("argument error: %w", err)
