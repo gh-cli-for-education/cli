@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/cli/cli/v2/api"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -19,12 +20,13 @@ type iprompter interface {
 }
 
 type DeleteOptions struct {
-	HttpClient func() (*http.Client, error)
-	BaseRepo   func() (ghrepo.Interface, error)
-	Prompter   iprompter
-	IO         *iostreams.IOStreams
-	RepoArg    string
-	Confirmed  bool
+	HttpClient   func() (*http.Client, error)
+	BaseRepo     func() (ghrepo.Interface, error)
+	Prompter     iprompter
+	IO           *iostreams.IOStreams
+	DefaultOwner func() (string, error)
+	RepoArg      string
+	Confirmed    bool
 }
 
 func NewCmdDelete(f *cmdutil.Factory, runF func(*DeleteOptions) error) *cobra.Command {
@@ -33,6 +35,7 @@ func NewCmdDelete(f *cmdutil.Factory, runF func(*DeleteOptions) error) *cobra.Co
 		HttpClient: f.HttpClient,
 		BaseRepo:   f.BaseRepo,
 		Prompter:   f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -47,7 +50,15 @@ To authorize, run "gh auth refresh -s delete_repo"`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				opts.RepoArg = args[0]
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+				opts.RepoArg = repository
 			}
 
 			if !opts.IO.CanPrompt() && !opts.Confirmed {
