@@ -14,6 +14,7 @@ import (
 	"github.com/cli/cli/v2/api"
 	fd "github.com/cli/cli/v2/internal/featuredetection"
 	"github.com/cli/cli/v2/internal/ghinstance"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -58,6 +59,7 @@ type EditOptions struct {
 	InteractiveMode bool
 	Detector        fd.Detector
 	Prompter        iprompter
+	DefaultOwner    func() (string, error)
 	// Cache of current repo topics to avoid retrieving them
 	// in multiple flows.
 	topicsCache []string
@@ -84,8 +86,9 @@ type EditRepositoryInput struct {
 
 func NewCmdEdit(f *cmdutil.Factory, runF func(options *EditOptions) error) *cobra.Command {
 	opts := &EditOptions{
-		IO:       f.IOStreams,
-		Prompter: f.Prompter,
+		IO:           f.IOStreams,
+		Prompter:     f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -115,8 +118,15 @@ func NewCmdEdit(f *cmdutil.Factory, runF func(options *EditOptions) error) *cobr
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				var err error
-				opts.Repository, err = ghrepo.FromFullName(args[0])
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+				opts.Repository, err = ghrepo.FromFullName(repository)
 				if err != nil {
 					return err
 				}
