@@ -50,15 +50,7 @@ To authorize, run "gh auth refresh -s delete_repo"`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				defaultOwner, err := opts.DefaultOwner()
-				if err != nil {
-					return err
-				}
-				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
-				if err != nil {
-					return err
-				}
-				opts.RepoArg = repository
+				opts.RepoArg = args[0]
 			}
 
 			if !opts.IO.CanPrompt() && !opts.Confirmed {
@@ -101,7 +93,14 @@ func deleteRun(opts *DeleteOptions) error {
 			if err != nil {
 				return err
 			}
-			repoSelector = currentUser + "/" + repoSelector
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				repoSelector, err = ghowner.RepoToOwnerRepo(defaultOwner, repoSelector)
+				if err != nil {
+					return err
+				}
+			} else {
+				repoSelector = currentUser + "/" + repoSelector
+			}
 		}
 		toDelete, err = ghrepo.FromFullName(repoSelector)
 		if err != nil {
