@@ -8,6 +8,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/internal/prompter"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -17,22 +18,24 @@ import (
 )
 
 type ArchiveOptions struct {
-	HttpClient func() (*http.Client, error)
-	Config     func() (gh.Config, error)
-	BaseRepo   func() (ghrepo.Interface, error)
-	Confirmed  bool
-	IO         *iostreams.IOStreams
-	RepoArg    string
-	Prompter   prompter.Prompter
+	HttpClient   func() (*http.Client, error)
+	Config       func() (gh.Config, error)
+	BaseRepo     func() (ghrepo.Interface, error)
+	Confirmed    bool
+	IO           *iostreams.IOStreams
+	RepoArg      string
+	Prompter     prompter.Prompter
+	DefaultOwner func() (string, error)
 }
 
 func NewCmdArchive(f *cmdutil.Factory, runF func(*ArchiveOptions) error) *cobra.Command {
 	opts := &ArchiveOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		Config:     f.Config,
-		BaseRepo:   f.BaseRepo,
-		Prompter:   f.Prompter,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		Config:       f.Config,
+		BaseRepo:     f.BaseRepo,
+		Prompter:     f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -44,7 +47,15 @@ With no argument, archives the current repository.`),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				opts.RepoArg = args[0]
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+				opts.RepoArg = repository
 			}
 
 			if !opts.Confirmed && !opts.IO.CanPrompt() {
