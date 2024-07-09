@@ -84,6 +84,9 @@ func TestNewCmdSetDefault(t *testing.T) {
 		f := &cmdutil.Factory{
 			IOStreams: io,
 			GitClient: &git.Client{GitPath: "/fake/path/to/git"},
+			DefaultOwner: func() (string, error) {
+				return "", nil
+			},
 		}
 
 		var gotOpts *SetDefaultOptions

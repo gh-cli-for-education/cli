@@ -143,22 +143,18 @@ func cloneRun(opts *CloneOptions) error {
 		if repositoryIsFullName {
 			fullName = opts.Repository
 		} else {
-			defaultOwner, err := opts.DefaultOwner()
+			host, _ := cfg.Authentication().DefaultHost()
+			currentUser, err := api.CurrentLoginName(apiClient, host)
 			if err != nil {
 				return err
 			}
-			if defaultOwner != "" {
-				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, opts.Repository)
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				// TODO: Find a way to test this
+				fullName, err = ghowner.RepoToOwnerRepo(defaultOwner, fullName)
 				if err != nil {
 					return err
 				}
-				fullName = repository
 			} else {
-				host, _ := cfg.Authentication().DefaultHost()
-				currentUser, err := api.CurrentLoginName(apiClient, host)
-				if err != nil {
-					return err
-				}
 				fullName = currentUser + "/" + opts.Repository
 			}
 		}

@@ -58,15 +58,7 @@ With '--branch', view a specific branch of the repository.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			if len(args) > 0 {
-				defaultOwner, err := opts.DefaultOwner()
-				if err != nil {
-					return err
-				}
-				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
-				if err != nil {
-					return err
-				}
-				opts.RepoArg = repository
+				opts.RepoArg = args[0]
 			}
 			if runF != nil {
 				return runF(&opts)
@@ -112,7 +104,14 @@ func viewRun(opts *ViewOptions) error {
 			if err != nil {
 				return err
 			}
-			viewURL = currentUser + "/" + viewURL
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				viewURL, err = ghowner.RepoToOwnerRepo(defaultOwner, viewURL)
+				if err != nil {
+					return err
+				}
+			} else {
+				viewURL = currentUser + "/" + viewURL
+			}
 		}
 		toView, err = ghrepo.FromFullName(viewURL)
 		if err != nil {

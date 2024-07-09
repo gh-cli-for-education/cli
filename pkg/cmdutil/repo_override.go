@@ -53,15 +53,6 @@ func EnableRepoOverride(cmd *cobra.Command, f *Factory) {
 			return err
 		}
 		repoOverride, _ := cmd.Flags().GetString("repo")
-		defaultOwner, err := f.DefaultOwner()
-		if err != nil {
-			return err
-		}
-
-		repoOverride, err = ghowner.RepoToOwnerRepo(defaultOwner, repoOverride)
-		if err != nil {
-			return err
-		}
 		f.BaseRepo = OverrideBaseRepoFunc(f, repoOverride)
 		return nil
 	}
@@ -73,7 +64,17 @@ func OverrideBaseRepoFunc(f *Factory, override string) func() (ghrepo.Interface,
 	}
 	if override != "" {
 		return func() (ghrepo.Interface, error) {
-			return ghrepo.FromFullName(override)
+			defaultOwner, err := f.DefaultOwner()
+			if err != nil {
+				return nil, err
+			}
+	
+			repository, err := ghowner.RepoToOwnerRepo(defaultOwner, override)
+			if err != nil {
+				return nil, err
+			}
+	
+			return ghrepo.FromFullName(repository)
 		}
 	}
 	return f.BaseRepo
