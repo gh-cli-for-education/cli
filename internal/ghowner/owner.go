@@ -6,7 +6,7 @@ import (
 
 // Method to make REPO to OWNER/REPO if default owner is set
 func RepoToOwnerRepo(owner string, repo string) (string, error) {
-	if repo != "" && !strings.Contains("/", repo) && owner != "" {
+	if repo != "" && !strings.Contains(repo, "/") && owner != "" {
 		return owner + "/" + repo, nil
 	}
 
