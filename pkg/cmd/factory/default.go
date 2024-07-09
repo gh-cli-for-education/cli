@@ -35,6 +35,7 @@ func New(appVersion string) *cmdutil.Factory {
 	f.HttpClient = httpClientFunc(f, appVersion) // Depends on Config, IOStreams, and appVersion
 	f.GitClient = newGitClient(f)                // Depends on IOStreams, and Executable
 	f.Remotes = remotesFunc(f)                   // Depends on Config, and GitClient
+	f.DefaultOwner = DefaultOwnerFunc(f)         // Depends on Config
 	f.BaseRepo = BaseRepoFunc(f)                 // Depends on Remotes
 	f.Prompter = newPrompter(f)                  // Depends on Config and IOStreams
 	f.Browser = newBrowser(f)                    // Depends on Config, and IOStreams
@@ -51,6 +52,22 @@ func BaseRepoFunc(f *cmdutil.Factory) func() (ghrepo.Interface, error) {
 			return nil, err
 		}
 		return remotes[0], nil
+	}
+}
+
+func DefaultOwnerFunc(f *cmdutil.Factory) func() (string, error) {
+	return func() (string, error) {
+		cfg, err := f.Config()
+		if err != nil {
+			return "", err
+		}
+
+		optValue := cfg.GetOrDefault("", "gh-owner")
+		if optValue.IsSome() {
+			return optValue.Unwrap().Value, nil
+		}
+
+		return "", nil
 	}
 }
 
