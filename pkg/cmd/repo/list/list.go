@@ -89,12 +89,6 @@ func NewCmdList(f *cmdutil.Factory, runF func(*ListOptions) error) *cobra.Comman
 
 			if len(args) > 0 {
 				opts.Owner = args[0]
-			} else {
-				defaultOwner, err := opts.DefaultOwner()
-				if err != nil {
-					return err
-				}
-				opts.Owner = defaultOwner
 			}
 
 			if runF != nil {
@@ -163,6 +157,16 @@ func listRun(opts *ListOptions) error {
 	}
 	if opts.Exporter != nil {
 		filter.Fields = opts.Exporter.Fields()
+	}
+
+	if opts.Owner == "" {
+		defaultOwner, err := opts.DefaultOwner()
+		if err != nil {
+			return err
+		}
+		if defaultOwner != "" {
+			opts.Owner = defaultOwner
+		}
 	}
 
 	listResult, err := listRepos(httpClient, host, opts.Limit, opts.Owner, filter)
