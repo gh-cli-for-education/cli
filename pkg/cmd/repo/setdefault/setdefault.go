@@ -13,8 +13,8 @@ import (
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/context"
 	"github.com/cli/cli/v2/git"
-	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/internal/ghowner"
+	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
 	"github.com/spf13/cobra"
@@ -81,17 +81,13 @@ func NewCmdSetDefault(f *cmdutil.Factory, runF func(*SetDefaultOptions) error) *
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				var err error
-				// If args[0] is in format REPO, add default owner to it
-				if !strings.Contains(args[0], "/") {
-					cfg, err := f.Config()
-					if err != nil {
-						return err
-					}
-					owner, err := ghowner.GetDefaultOwner(cfg)
-					if err != nil {
-						return err
-					}
-					args[0] = owner + "/" + args[0]
+				cfg, err := f.Config()
+				if err != nil {
+					return err
+				}
+				args[0], err = ghowner.GetRepoWithDefaultOwner(cfg, args[0])
+				if err != nil {
+					return err
 				}
 				opts.Repo, err = ghrepo.FromFullName(args[0])
 				if err != nil {

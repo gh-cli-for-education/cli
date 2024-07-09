@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/spf13/cobra"
 )
@@ -52,6 +53,14 @@ func EnableRepoOverride(cmd *cobra.Command, f *Factory) {
 			return err
 		}
 		repoOverride, _ := cmd.Flags().GetString("repo")
+		cfg, err := f.Config()
+		if err != nil {
+			return err
+		}
+		repoOverride, err = ghowner.GetRepoWithDefaultOwner(cfg, repoOverride)
+		if err != nil {
+			return err
+		}
 		f.BaseRepo = OverrideBaseRepoFunc(f, repoOverride)
 		return nil
 	}
