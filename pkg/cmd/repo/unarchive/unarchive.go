@@ -8,6 +8,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/internal/prompter"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -16,22 +17,24 @@ import (
 )
 
 type UnarchiveOptions struct {
-	HttpClient func() (*http.Client, error)
-	Config     func() (gh.Config, error)
-	BaseRepo   func() (ghrepo.Interface, error)
-	Confirmed  bool
-	IO         *iostreams.IOStreams
-	RepoArg    string
-	Prompter   prompter.Prompter
+	HttpClient   func() (*http.Client, error)
+	Config       func() (gh.Config, error)
+	BaseRepo     func() (ghrepo.Interface, error)
+	Confirmed    bool
+	IO           *iostreams.IOStreams
+	RepoArg      string
+	Prompter     prompter.Prompter
+	DefaultOwner func() (string, error)
 }
 
 func NewCmdUnarchive(f *cmdutil.Factory, runF func(*UnarchiveOptions) error) *cobra.Command {
 	opts := &UnarchiveOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		Config:     f.Config,
-		BaseRepo:   f.BaseRepo,
-		Prompter:   f.Prompter,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		Config:       f.Config,
+		BaseRepo:     f.BaseRepo,
+		Prompter:     f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -93,7 +96,14 @@ func unarchiveRun(opts *UnarchiveOptions) error {
 			if err != nil {
 				return err
 			}
-			repoSelector = currentUser + "/" + repoSelector
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				repoSelector, err = ghowner.RepoToOwnerRepo(defaultOwner, repoSelector)
+				if err != nil {
+					return err
+				}
+			} else {
+				repoSelector = currentUser + "/" + repoSelector
+			}
 		}
 
 		toUnarchive, err = ghrepo.FromFullName(repoSelector)

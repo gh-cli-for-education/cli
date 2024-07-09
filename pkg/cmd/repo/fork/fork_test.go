@@ -724,6 +724,10 @@ func TestRepoFork(t *testing.T) {
 				return ghrepo.New("OWNER", "REPO"), nil
 			}
 
+			tt.opts.DefaultOwner = func() (string, error) {
+				return "", nil
+			}
+
 			reg := &httpmock.Registry{}
 			if tt.httpStubs != nil {
 				tt.httpStubs(reg)
