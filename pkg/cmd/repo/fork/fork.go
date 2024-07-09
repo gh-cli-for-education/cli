@@ -15,6 +15,7 @@ import (
 	ghContext "github.com/cli/cli/v2/context"
 	"github.com/cli/cli/v2/git"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmd/repo/shared"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -30,15 +31,16 @@ type iprompter interface {
 }
 
 type ForkOptions struct {
-	HttpClient func() (*http.Client, error)
-	GitClient  *git.Client
-	Config     func() (gh.Config, error)
-	IO         *iostreams.IOStreams
-	BaseRepo   func() (ghrepo.Interface, error)
-	Remotes    func() (ghContext.Remotes, error)
-	Since      func(time.Time) time.Duration
-	BackOff    backoff.BackOff
-	Prompter   iprompter
+	HttpClient   func() (*http.Client, error)
+	GitClient    *git.Client
+	Config       func() (gh.Config, error)
+	IO           *iostreams.IOStreams
+	BaseRepo     func() (ghrepo.Interface, error)
+	Remotes      func() (ghContext.Remotes, error)
+	Since        func(time.Time) time.Duration
+	BackOff      backoff.BackOff
+	Prompter     iprompter
+	DefaultOwner func() (string, error)
 
 	GitArgs           []string
 	Repository        string
@@ -70,6 +72,7 @@ func NewCmdFork(f *cmdutil.Factory, runF func(*ForkOptions) error) *cobra.Comman
 		BaseRepo:   f.BaseRepo,
 		Remotes:    f.Remotes,
 		Prompter:   f.Prompter,
+		DefaultOwner: f.DefaultOwner,
 		Since:      time.Since,
 	}
 
@@ -99,7 +102,15 @@ func NewCmdFork(f *cmdutil.Factory, runF func(*ForkOptions) error) *cobra.Comman
 		RunE: func(cmd *cobra.Command, args []string) error {
 			promptOk := opts.IO.CanPrompt()
 			if len(args) > 0 {
-				opts.Repository = args[0]
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+				opts.Repository = repository
 				opts.GitArgs = args[1:]
 			}
 
