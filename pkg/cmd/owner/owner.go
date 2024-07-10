@@ -242,7 +242,7 @@ func listHeader(user string, resultCount, totalCount int) string {
 }
 
 func selectOwnerPrompt(prompter iprompter, user string, orgs []Organization) (string, error) {
-	selectedOwner, err := prompter.Select("Select a default owner", user, organizationsToList(orgs))
+	selectedOwner, err := prompter.Select("Select a default owner (press CTRL-C to exit)", user, organizationsToList(orgs))
 	if err != nil {
 		return "", err
 	}
