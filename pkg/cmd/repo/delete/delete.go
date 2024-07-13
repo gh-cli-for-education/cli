@@ -31,10 +31,10 @@ type DeleteOptions struct {
 
 func NewCmdDelete(f *cmdutil.Factory, runF func(*DeleteOptions) error) *cobra.Command {
 	opts := &DeleteOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		BaseRepo:   f.BaseRepo,
-		Prompter:   f.Prompter,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		BaseRepo:     f.BaseRepo,
+		Prompter:     f.Prompter,
 		DefaultOwner: f.DefaultOwner,
 	}
 

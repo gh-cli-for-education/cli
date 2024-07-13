@@ -65,15 +65,15 @@ type errWithExitCode interface {
 
 func NewCmdFork(f *cmdutil.Factory, runF func(*ForkOptions) error) *cobra.Command {
 	opts := &ForkOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		GitClient:  f.GitClient,
-		Config:     f.Config,
-		BaseRepo:   f.BaseRepo,
-		Remotes:    f.Remotes,
-		Prompter:   f.Prompter,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		GitClient:    f.GitClient,
+		Config:       f.Config,
+		BaseRepo:     f.BaseRepo,
+		Remotes:      f.Remotes,
+		Prompter:     f.Prompter,
 		DefaultOwner: f.DefaultOwner,
-		Since:      time.Since,
+		Since:        time.Since,
 	}
 
 	cmd := &cobra.Command{

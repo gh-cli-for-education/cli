@@ -68,12 +68,12 @@ func OverrideBaseRepoFunc(f *Factory, override string) func() (ghrepo.Interface,
 			if err != nil {
 				return nil, err
 			}
-	
+
 			repository, err := ghowner.RepoToOwnerRepo(defaultOwner, override)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			return ghrepo.FromFullName(repository)
 		}
 	}
