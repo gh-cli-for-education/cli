@@ -84,6 +84,10 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 			$ gh owner --list
 			$ gh owner --select
 			$ gh owner --unset
+
+			$ gh repo clone [REPO]
+			$ gh browse -R [REPO]
+			$ gh issue list -R [REPO]
 		`),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 1 {
