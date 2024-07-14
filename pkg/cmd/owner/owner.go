@@ -16,6 +16,41 @@ type iprompter interface {
 	Select(string, string, []string) (int, error)
 }
 
+func explainer() string {
+	return heredoc.Doc(`
+		The owner command allows you to manage the default owner for GitHub CLI commands.
+
+		gh uses the default owner for commands like:
+
+			Inherited from flag -R --repo:
+				- browse
+				- cache <command>
+				- issue <command>
+				- label <command>
+				- pr <command>
+				- project link
+				- project unlink
+				- release <command>
+				- repo deploy-key <command>
+				- repo rename
+				- ruleset <command>
+				- run <command>
+				- secret <command>
+				- variable <command>
+				- workflow <command>
+
+			Subcommands from gh repo:
+				- list <owner>
+				- archive <repository>
+				- clone <repository>
+				- delete <repository>
+				- edit <repository>
+				- fork <repository>
+				- set-default <repository>
+				- unarchive <repository>
+				- view <repository>`)
+}
+
 type OwnerOptions struct {
 	Config       func() (gh.Config, error)
 	IO           *iostreams.IOStreams
@@ -42,8 +77,7 @@ func NewCmdOwner(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "owner [OWNER] |",
 		Short: "Manage default owner for GitHub CLI commands",
-		Long: `The owner command allows you to manage the default owner
-			for GitHub CLI commands.`,
+		Long:  explainer(),
 		Example: heredoc.Doc(`
 			$ gh owner
 			$ gh owner [ORGANIZATION | USER]
