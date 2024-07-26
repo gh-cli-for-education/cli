@@ -19,11 +19,12 @@ import (
 )
 
 type ListOptions struct {
-	HttpClient func() (*http.Client, error)
-	Config     func() (gh.Config, error)
-	IO         *iostreams.IOStreams
-	Exporter   cmdutil.Exporter
-	Detector   fd.Detector
+	HttpClient   func() (*http.Client, error)
+	Config       func() (gh.Config, error)
+	IO           *iostreams.IOStreams
+	Exporter     cmdutil.Exporter
+	Detector     fd.Detector
+	DefaultOwner func() (string, error)
 
 	Limit int
 	Owner string
@@ -41,10 +42,11 @@ type ListOptions struct {
 
 func NewCmdList(f *cmdutil.Factory, runF func(*ListOptions) error) *cobra.Command {
 	opts := ListOptions{
-		IO:         f.IOStreams,
-		Config:     f.Config,
-		HttpClient: f.HttpClient,
-		Now:        time.Now,
+		IO:           f.IOStreams,
+		Config:       f.Config,
+		HttpClient:   f.HttpClient,
+		DefaultOwner: f.DefaultOwner,
+		Now:          time.Now,
 	}
 
 	var (
@@ -155,6 +157,16 @@ func listRun(opts *ListOptions) error {
 	}
 	if opts.Exporter != nil {
 		filter.Fields = opts.Exporter.Fields()
+	}
+
+	if opts.Owner == "" {
+		defaultOwner, err := opts.DefaultOwner()
+		if err != nil {
+			return err
+		}
+		if defaultOwner != "" {
+			opts.Owner = defaultOwner
+		}
 	}
 
 	listResult, err := listRepos(httpClient, host, opts.Limit, opts.Owner, filter)

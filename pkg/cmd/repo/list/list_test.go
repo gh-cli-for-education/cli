@@ -286,6 +286,9 @@ func runCommand(rt http.RoundTripper, isTTY bool, cli string) (*test.CmdOut, err
 		Config: func() (gh.Config, error) {
 			return config.NewBlankConfig(), nil
 		},
+		DefaultOwner: func() (string, error) {
+			return "", nil
+		},
 	}
 
 	cmd := NewCmdList(factory, nil)
@@ -334,6 +337,9 @@ func TestRepoList_nontty(t *testing.T) {
 			return t
 		},
 		Limit: 30,
+		DefaultOwner: func() (string, error) {
+			return "octocat", nil
+		},
 	}
 
 	err := listRun(&opts)
@@ -375,6 +381,9 @@ func TestRepoList_tty(t *testing.T) {
 			return t
 		},
 		Limit: 30,
+		DefaultOwner: func() (string, error) {
+			return "octocat", nil
+		},
 	}
 
 	err := listRun(&opts)
@@ -446,6 +455,9 @@ func TestRepoList_noVisibilityField(t *testing.T) {
 		},
 		Limit:    30,
 		Detector: &fd.DisabledDetectorMock{},
+		DefaultOwner: func() (string, error) {
+			return "octocat", nil
+		},
 	}
 
 	err := listRun(&opts)

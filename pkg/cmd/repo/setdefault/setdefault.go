@@ -13,6 +13,7 @@ import (
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/context"
 	"github.com/cli/cli/v2/git"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmdutil"
 	"github.com/cli/cli/v2/pkg/iostreams"
@@ -38,11 +39,12 @@ type iprompter interface {
 }
 
 type SetDefaultOptions struct {
-	IO         *iostreams.IOStreams
-	Remotes    func() (context.Remotes, error)
-	HttpClient func() (*http.Client, error)
-	Prompter   iprompter
-	GitClient  *git.Client
+	IO           *iostreams.IOStreams
+	Remotes      func() (context.Remotes, error)
+	HttpClient   func() (*http.Client, error)
+	Prompter     iprompter
+	GitClient    *git.Client
+	DefaultOwner func() (string, error)
 
 	Repo      ghrepo.Interface
 	ViewMode  bool
@@ -51,11 +53,12 @@ type SetDefaultOptions struct {
 
 func NewCmdSetDefault(f *cmdutil.Factory, runF func(*SetDefaultOptions) error) *cobra.Command {
 	opts := &SetDefaultOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		Remotes:    f.Remotes,
-		Prompter:   f.Prompter,
-		GitClient:  f.GitClient,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		Remotes:      f.Remotes,
+		Prompter:     f.Prompter,
+		GitClient:    f.GitClient,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -80,7 +83,17 @@ func NewCmdSetDefault(f *cmdutil.Factory, runF func(*SetDefaultOptions) error) *
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				var err error
-				opts.Repo, err = ghrepo.FromFullName(args[0])
+				defaultOwner, err := opts.DefaultOwner()
+				if err != nil {
+					return err
+				}
+
+				repository, err := ghowner.RepoToOwnerRepo(defaultOwner, args[0])
+				if err != nil {
+					return err
+				}
+
+				opts.Repo, err = ghrepo.FromFullName(repository)
 				if err != nil {
 					return err
 				}

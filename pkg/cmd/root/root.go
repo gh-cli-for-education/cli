@@ -24,6 +24,7 @@ import (
 	issueCmd "github.com/cli/cli/v2/pkg/cmd/issue"
 	labelCmd "github.com/cli/cli/v2/pkg/cmd/label"
 	orgCmd "github.com/cli/cli/v2/pkg/cmd/org"
+	ownerCmd "github.com/cli/cli/v2/pkg/cmd/owner"
 	prCmd "github.com/cli/cli/v2/pkg/cmd/pr"
 	projectCmd "github.com/cli/cli/v2/pkg/cmd/project"
 	releaseCmd "github.com/cli/cli/v2/pkg/cmd/release"
@@ -156,6 +157,7 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) (*cobra.Command, 
 	cmd.AddCommand(labelCmd.NewCmdLabel(&repoResolvingCmdFactory))
 	cmd.AddCommand(cacheCmd.NewCmdCache(&repoResolvingCmdFactory))
 	cmd.AddCommand(apiCmd.NewCmdApi(&repoResolvingCmdFactory, nil))
+	cmd.AddCommand(ownerCmd.NewCmdOwner(&repoResolvingCmdFactory))
 
 	// Help topics
 	var referenceCmd *cobra.Command

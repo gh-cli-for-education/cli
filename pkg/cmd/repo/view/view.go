@@ -12,6 +12,7 @@ import (
 	"github.com/cli/cli/v2/api"
 	"github.com/cli/cli/v2/internal/browser"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/internal/text"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -21,12 +22,13 @@ import (
 )
 
 type ViewOptions struct {
-	HttpClient func() (*http.Client, error)
-	IO         *iostreams.IOStreams
-	BaseRepo   func() (ghrepo.Interface, error)
-	Browser    browser.Browser
-	Exporter   cmdutil.Exporter
-	Config     func() (gh.Config, error)
+	HttpClient   func() (*http.Client, error)
+	IO           *iostreams.IOStreams
+	BaseRepo     func() (ghrepo.Interface, error)
+	Browser      browser.Browser
+	Exporter     cmdutil.Exporter
+	Config       func() (gh.Config, error)
+	DefaultOwner func() (string, error)
 
 	RepoArg string
 	Web     bool
@@ -35,11 +37,12 @@ type ViewOptions struct {
 
 func NewCmdView(f *cmdutil.Factory, runF func(*ViewOptions) error) *cobra.Command {
 	opts := ViewOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		BaseRepo:   f.BaseRepo,
-		Browser:    f.Browser,
-		Config:     f.Config,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		BaseRepo:     f.BaseRepo,
+		Browser:      f.Browser,
+		Config:       f.Config,
+		DefaultOwner: f.DefaultOwner,
 	}
 
 	cmd := &cobra.Command{
@@ -101,7 +104,14 @@ func viewRun(opts *ViewOptions) error {
 			if err != nil {
 				return err
 			}
-			viewURL = currentUser + "/" + viewURL
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				viewURL, err = ghowner.RepoToOwnerRepo(defaultOwner, viewURL)
+				if err != nil {
+					return err
+				}
+			} else {
+				viewURL = currentUser + "/" + viewURL
+			}
 		}
 		toView, err = ghrepo.FromFullName(viewURL)
 		if err != nil {

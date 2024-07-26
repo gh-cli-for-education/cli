@@ -534,6 +534,9 @@ func Test_ViewRun_WithoutUsername(t *testing.T) {
 		Config: func() (gh.Config, error) {
 			return config.NewBlankConfig(), nil
 		},
+		DefaultOwner: func() (string, error) {
+			return "", nil
+		},
 	}
 
 	if err := viewRun(opts); err != nil {

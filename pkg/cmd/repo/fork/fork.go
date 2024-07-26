@@ -15,6 +15,7 @@ import (
 	ghContext "github.com/cli/cli/v2/context"
 	"github.com/cli/cli/v2/git"
 	"github.com/cli/cli/v2/internal/gh"
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/cli/cli/v2/pkg/cmd/repo/shared"
 	"github.com/cli/cli/v2/pkg/cmdutil"
@@ -30,15 +31,16 @@ type iprompter interface {
 }
 
 type ForkOptions struct {
-	HttpClient func() (*http.Client, error)
-	GitClient  *git.Client
-	Config     func() (gh.Config, error)
-	IO         *iostreams.IOStreams
-	BaseRepo   func() (ghrepo.Interface, error)
-	Remotes    func() (ghContext.Remotes, error)
-	Since      func(time.Time) time.Duration
-	BackOff    backoff.BackOff
-	Prompter   iprompter
+	HttpClient   func() (*http.Client, error)
+	GitClient    *git.Client
+	Config       func() (gh.Config, error)
+	IO           *iostreams.IOStreams
+	BaseRepo     func() (ghrepo.Interface, error)
+	Remotes      func() (ghContext.Remotes, error)
+	Since        func(time.Time) time.Duration
+	BackOff      backoff.BackOff
+	Prompter     iprompter
+	DefaultOwner func() (string, error)
 
 	GitArgs           []string
 	Repository        string
@@ -63,14 +65,15 @@ type errWithExitCode interface {
 
 func NewCmdFork(f *cmdutil.Factory, runF func(*ForkOptions) error) *cobra.Command {
 	opts := &ForkOptions{
-		IO:         f.IOStreams,
-		HttpClient: f.HttpClient,
-		GitClient:  f.GitClient,
-		Config:     f.Config,
-		BaseRepo:   f.BaseRepo,
-		Remotes:    f.Remotes,
-		Prompter:   f.Prompter,
-		Since:      time.Since,
+		IO:           f.IOStreams,
+		HttpClient:   f.HttpClient,
+		GitClient:    f.GitClient,
+		Config:       f.Config,
+		BaseRepo:     f.BaseRepo,
+		Remotes:      f.Remotes,
+		Prompter:     f.Prompter,
+		DefaultOwner: f.DefaultOwner,
+		Since:        time.Since,
 	}
 
 	cmd := &cobra.Command{
@@ -177,6 +180,12 @@ func forkRun(opts *ForkOptions) error {
 				return fmt.Errorf("did not understand argument: %w", err)
 			}
 		} else {
+			if defaultOwner, _ := opts.DefaultOwner(); defaultOwner != "" {
+				repoArg, err = ghowner.RepoToOwnerRepo(defaultOwner, repoArg)
+				if err != nil {
+					return err
+				}
+			}
 			repoToFork, err = ghrepo.FromFullName(repoArg)
 			if err != nil {
 				return fmt.Errorf("argument error: %w", err)

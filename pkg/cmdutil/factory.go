@@ -26,11 +26,12 @@ type Factory struct {
 	IOStreams        *iostreams.IOStreams
 	Prompter         prompter.Prompter
 
-	BaseRepo   func() (ghrepo.Interface, error)
-	Branch     func() (string, error)
-	Config     func() (gh.Config, error)
-	HttpClient func() (*http.Client, error)
-	Remotes    func() (context.Remotes, error)
+	BaseRepo     func() (ghrepo.Interface, error)
+	DefaultOwner func() (string, error)
+	Branch       func() (string, error)
+	Config       func() (gh.Config, error)
+	HttpClient   func() (*http.Client, error)
+	Remotes      func() (context.Remotes, error)
 }
 
 // Executable is the path to the currently invoked binary

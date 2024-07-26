@@ -110,6 +110,9 @@ func runCloneCommand(httpClient *http.Client, cli string) (*test.CmdOut, error) 
 			GhPath:  "some/path/gh",
 			GitPath: "some/path/git",
 		},
+		DefaultOwner: func() (string, error) {
+			return "", nil
+		},
 	}
 
 	cmd := NewCmdClone(fac, nil)

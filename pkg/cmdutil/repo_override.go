@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cli/cli/v2/internal/ghowner"
 	"github.com/cli/cli/v2/internal/ghrepo"
 	"github.com/spf13/cobra"
 )
@@ -63,7 +64,17 @@ func OverrideBaseRepoFunc(f *Factory, override string) func() (ghrepo.Interface,
 	}
 	if override != "" {
 		return func() (ghrepo.Interface, error) {
-			return ghrepo.FromFullName(override)
+			defaultOwner, err := f.DefaultOwner()
+			if err != nil {
+				return nil, err
+			}
+
+			repository, err := ghowner.RepoToOwnerRepo(defaultOwner, override)
+			if err != nil {
+				return nil, err
+			}
+
+			return ghrepo.FromFullName(repository)
 		}
 	}
 	return f.BaseRepo
